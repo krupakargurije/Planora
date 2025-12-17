@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: planora-postgres
+    environment:
+      POSTGRES_DB: planora_db
+      POSTGRES_USER: planora_user
+      POSTGRES_PASSWORD: planora_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - planora-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U planora_user -d planora_db" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend Service
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: planora-backend
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/planora_db
+      SPRING_DATASOURCE_USERNAME: planora_user
+      SPRING_DATASOURCE_PASSWORD: planora_password
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      JWT_SECRET: ${JWT_SECRET:-404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-86400000}
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - planora-network
+    restart: unless-stopped
+
+  # Frontend Service
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: planora-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - planora-network
+    restart: unless-stopped
+
+networks:
+  planora-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local

@@ -97,6 +97,27 @@ npm run dev
 
 The frontend will start on **http://localhost:5173**
 
+### 5. Docker Deployment (Recommended for Production)
+
+For containerized deployment with Docker:
+
+\`\`\`bash
+# Copy environment template
+cp .env.docker .env
+
+# Edit .env with your credentials
+# Then build and run
+docker-compose up --build
+\`\`\`
+
+**Access:**
+- Frontend: http://localhost
+- Backend: http://localhost:8080
+
+See [DOCKER.md](DOCKER.md) for detailed Docker deployment guide.
+
+---
+
 ## 📡 API Endpoints
 
 ### Authentication

@@ -3,10 +3,10 @@ spring:
     name: Planora
   
   datasource:
-    url: jdbc:h2:mem:planora_db
-    driver-class-name: org.h2.Driver
-    username: sa
-    password: 
+    url: ${SPRING_DATASOURCE_URL:jdbc:h2:mem:planora_db}
+    driver-class-name: ${SPRING_DATASOURCE_DRIVER:org.h2.Driver}
+    username: ${SPRING_DATASOURCE_USERNAME:sa}
+    password: ${SPRING_DATASOURCE_PASSWORD:}
   
   h2:
     console:
@@ -15,17 +15,17 @@ spring:
   
   jpa:
     hibernate:
-      ddl-auto: create-drop
-    show-sql: true
+      ddl-auto: ${SPRING_JPA_DDL_AUTO:create-drop}
+    show-sql: ${SPRING_JPA_SHOW_SQL:true}
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.H2Dialect
+        dialect: ${SPRING_JPA_DIALECT:org.hibernate.dialect.H2Dialect}
         format_sql: true
     defer-datasource-initialization: true
   
   sql:
     init:
-      mode: always
+      mode: ${SPRING_SQL_INIT_MODE:always}
   
   security:
     oauth2:
