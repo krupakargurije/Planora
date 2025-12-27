@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plane, MapPin, Calendar, Users, DollarSign, ArrowLeft } from 'lucide-react';
-import { tripAPI } from '../services/api';
+import { tripAPI, destinationAPI } from '../services/api';
 
 const PlanTrip = () => {
     const navigate = useNavigate();
@@ -9,6 +9,7 @@ const PlanTrip = () => {
     const [error, setError] = useState('');
     const [formData, setFormData] = useState({
         startCity: '',
+        destination: '',
         startDate: '',
         endDate: '',
         numberOfTravelers: 1,
@@ -17,10 +18,90 @@ const PlanTrip = () => {
         planType: 'BALANCED',
     });
 
+    // Autocomplete state
+    const [showStartCitySuggestions, setShowStartCitySuggestions] = useState(false);
+    const [showDestinationSuggestions, setShowDestinationSuggestions] = useState(false);
+
+    // Data from backend
+    const [popularCities, setPopularCities] = useState([]);
+    const [popularDestinations, setPopularDestinations] = useState([]);
+    const [loadingData, setLoadingData] = useState(true);
+
+    // Fetch destinations from backend on component mount
+    useEffect(() => {
+        const fetchDestinations = async () => {
+            try {
+                const response = await destinationAPI.getAll();
+                const destinations = response.data.data || [];
+
+                // Set destinations
+                setPopularDestinations(destinations);
+
+                // For cities, we'll use major Indian cities (can be moved to backend later)
+                setPopularCities([
+                    'Mumbai', 'Delhi', 'Bangalore', 'Hyderabad', 'Chennai', 'Kolkata',
+                    'Pune', 'Ahmedabad', 'Surat', 'Jaipur', 'Lucknow', 'Kanpur',
+                    'Nagpur', 'Indore', 'Thane', 'Bhopal', 'Visakhapatnam', 'Patna'
+                ]);
+
+                setLoadingData(false);
+            } catch (err) {
+                console.error('Failed to fetch destinations:', err);
+                // Fallback to hardcoded list if API fails
+                setPopularDestinations([
+                    'Goa', 'Jaipur', 'Kerala', 'Manali', 'Udaipur', 'Rishikesh',
+                    'Varanasi', 'Andaman Islands', 'Shimla', 'Agra', 'Ladakh',
+                    'Munnar', 'Darjeeling', 'Mysore', 'Hampi', 'Ooty', 'Coorg',
+                    'Nainital', 'Mussoorie', 'Gokarna', 'Pondicherry', 'Kasol'
+                ]);
+                setPopularCities([
+                    'Mumbai', 'Delhi', 'Bangalore', 'Hyderabad', 'Chennai', 'Kolkata',
+                    'Pune', 'Ahmedabad', 'Surat', 'Jaipur', 'Lucknow', 'Kanpur',
+                    'Nagpur', 'Indore', 'Thane', 'Bhopal', 'Visakhapatnam', 'Patna'
+                ]);
+                setLoadingData(false);
+            }
+        };
+
+        fetchDestinations();
+    }, []);
+
+    // Filter suggestions based on input
+    const getFilteredCities = (input) => {
+        if (!input) return popularCities;
+        return popularCities.filter(city =>
+            city.toLowerCase().includes(input.toLowerCase())
+        );
+    };
+
+    const getFilteredDestinations = (input) => {
+        if (!input) return popularDestinations;
+        return popularDestinations.filter(dest =>
+            dest.toLowerCase().includes(input.toLowerCase())
+        );
+    };
+
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData({ ...formData, [name]: value });
         setError('');
+
+        // Show suggestions when typing
+        if (name === 'startCity') {
+            setShowStartCitySuggestions(true);
+        } else if (name === 'destination') {
+            setShowDestinationSuggestions(true);
+        }
+    };
+
+    const selectStartCity = (city) => {
+        setFormData({ ...formData, startCity: city });
+        setShowStartCitySuggestions(false);
+    };
+
+    const selectDestination = (destination) => {
+        setFormData({ ...formData, destination: destination });
+        setShowDestinationSuggestions(false);
     };
 
     const handleSubmit = async (e) => {
@@ -75,20 +156,90 @@ const PlanTrip = () => {
                         {/* Starting City */}
                         <div>
                             <label className="block text-sm font-medium text-dark-300 mb-2">
-                                Starting City
+                                Starting City (Source)
                             </label>
                             <div className="relative">
-                                <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-dark-500" />
+                                <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-dark-500 z-10" />
                                 <input
                                     type="text"
                                     name="startCity"
                                     value={formData.startCity}
                                     onChange={handleChange}
+                                    onFocus={() => setShowStartCitySuggestions(true)}
+                                    onBlur={() => setTimeout(() => setShowStartCitySuggestions(false), 200)}
                                     className="input-field pl-11"
                                     placeholder="e.g., Mumbai, Delhi, Bangalore"
                                     required
+                                    autoComplete="off"
                                 />
+                                {/* Autocomplete Dropdown */}
+                                {showStartCitySuggestions && (
+                                    <div className="absolute z-50 w-full mt-1 bg-dark-800 border border-dark-700 rounded-xl shadow-xl max-h-60 overflow-y-auto">
+                                        {getFilteredCities(formData.startCity).map((city, index) => (
+                                            <button
+                                                key={index}
+                                                type="button"
+                                                onMouseDown={() => selectStartCity(city)}
+                                                className="w-full text-left px-4 py-3 hover:bg-dark-700 text-dark-200 transition-colors first:rounded-t-xl last:rounded-b-xl flex items-center space-x-2"
+                                            >
+                                                <MapPin className="w-4 h-4 text-dark-500" />
+                                                <span>{city}</span>
+                                            </button>
+                                        ))}
+                                        {getFilteredCities(formData.startCity).length === 0 && (
+                                            <div className="px-4 py-3 text-dark-400 text-sm">
+                                                No cities found
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
+                        </div>
+
+                        {/* Destination */}
+                        <div>
+                            <label className="block text-sm font-medium text-dark-300 mb-2">
+                                Destination
+                            </label>
+                            <div className="relative">
+                                <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-primary-500 z-10" />
+                                <input
+                                    type="text"
+                                    name="destination"
+                                    value={formData.destination}
+                                    onChange={handleChange}
+                                    onFocus={() => setShowDestinationSuggestions(true)}
+                                    onBlur={() => setTimeout(() => setShowDestinationSuggestions(false), 200)}
+                                    className="input-field pl-11"
+                                    placeholder="e.g., Goa, Jaipur, Kerala"
+                                    required
+                                    autoComplete="off"
+                                />
+                                {/* Autocomplete Dropdown */}
+                                {showDestinationSuggestions && (
+                                    <div className="absolute z-50 w-full mt-1 bg-dark-800 border border-dark-700 rounded-xl shadow-xl max-h-60 overflow-y-auto">
+                                        {getFilteredDestinations(formData.destination).map((dest, index) => (
+                                            <button
+                                                key={index}
+                                                type="button"
+                                                onMouseDown={() => selectDestination(dest)}
+                                                className="w-full text-left px-4 py-3 hover:bg-dark-700 text-dark-200 transition-colors first:rounded-t-xl last:rounded-b-xl flex items-center space-x-2"
+                                            >
+                                                <MapPin className="w-4 h-4 text-primary-500" />
+                                                <span>{dest}</span>
+                                            </button>
+                                        ))}
+                                        {getFilteredDestinations(formData.destination).length === 0 && (
+                                            <div className="px-4 py-3 text-dark-400 text-sm">
+                                                No destinations found
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                            <p className="mt-2 text-xs text-dark-400">
+                                We'll calculate travel costs from your starting city to this destination
+                            </p>
                         </div>
 
                         {/* Dates */}
@@ -159,8 +310,8 @@ const PlanTrip = () => {
                                         type="button"
                                         onClick={() => setFormData({ ...formData, travelType: type })}
                                         className={`py-3 px-4 rounded-xl font-medium transition-all ${formData.travelType === type
-                                                ? 'bg-primary-500 text-white shadow-lg scale-105'
-                                                : 'bg-dark-800 text-dark-300 hover:bg-dark-700'
+                                            ? 'bg-primary-500 text-white shadow-lg scale-105'
+                                            : 'bg-dark-800 text-dark-300 hover:bg-dark-700'
                                             }`}
                                     >
                                         {type}
@@ -205,8 +356,8 @@ const PlanTrip = () => {
                                         type="button"
                                         onClick={() => setFormData({ ...formData, planType: type })}
                                         className={`p-4 rounded-xl border-2 transition-all ${formData.planType === type
-                                                ? `border-${color}-500 bg-${color}-500/10 scale-105`
-                                                : 'border-dark-700 bg-dark-800 hover:border-dark-600'
+                                            ? `border-${color}-500 bg-${color}-500/10 scale-105`
+                                            : 'border-dark-700 bg-dark-800 hover:border-dark-600'
                                             }`}
                                     >
                                         <div className="font-semibold text-dark-100 mb-1">{type}</div>

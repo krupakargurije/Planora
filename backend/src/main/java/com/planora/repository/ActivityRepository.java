@@ -12,4 +12,6 @@ public interface ActivityRepository extends JpaRepository<Activity, Long> {
     List<Activity> findByTripId(Long tripId);
 
     List<Activity> findByCategory(String category);
+
+    void deleteByTripId(Long tripId);
 }

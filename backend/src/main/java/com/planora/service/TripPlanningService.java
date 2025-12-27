@@ -125,6 +125,28 @@ public class TripPlanningService {
     }
 
     /**
+     * Delete a trip
+     */
+    @Transactional
+    public void deleteTrip(Long tripId, Long userId) {
+        Trip trip = tripRepository.findById(tripId)
+                .orElseThrow(() -> new ResourceNotFoundException("Trip", "id", tripId));
+
+        // Verify trip belongs to user
+        if (!trip.getUserId().equals(userId)) {
+            throw new RuntimeException("Unauthorized to delete this trip");
+        }
+
+        // Delete associated data (cascade should handle this, but being explicit)
+        hotelRepository.deleteByTripId(tripId);
+        activityRepository.deleteByTripId(tripId);
+        budgetAllocationService.deleteBudgetAllocationByTripId(tripId);
+
+        // Delete the trip
+        tripRepository.delete(trip);
+    }
+
+    /**
      * Find suitable destination based on budget
      */
     private Destination findSuitableDestination(Double totalBudget, Integer numberOfDays) {

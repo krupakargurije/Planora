@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plane, LogOut, Plus, MapPin, Calendar, DollarSign, Users } from 'lucide-react';
+import { Plane, LogOut, Plus, MapPin, Calendar, DollarSign, Users, Trash2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { tripAPI } from '../services/api';
 
@@ -9,6 +9,9 @@ const Dashboard = () => {
     const { user, logout } = useAuth();
     const [trips, setTrips] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [deletingId, setDeletingId] = useState(null);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [tripToDelete, setTripToDelete] = useState(null);
 
     useEffect(() => {
         fetchTrips();
@@ -28,6 +31,35 @@ const Dashboard = () => {
     const handleLogout = () => {
         logout();
         navigate('/login');
+    };
+
+    const handleDeleteClick = (e, trip) => {
+        e.stopPropagation(); // Prevent navigation to trip details
+        setTripToDelete(trip);
+        setShowDeleteConfirm(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!tripToDelete) return;
+
+        setDeletingId(tripToDelete.tripId);
+        try {
+            await tripAPI.deleteTrip(tripToDelete.tripId);
+            // Remove from local state
+            setTrips(trips.filter(t => t.tripId !== tripToDelete.tripId));
+            setShowDeleteConfirm(false);
+            setTripToDelete(null);
+        } catch (error) {
+            console.error('Error deleting trip:', error);
+            alert('Failed to delete trip. Please try again.');
+        } finally {
+            setDeletingId(null);
+        }
+    };
+
+    const cancelDelete = () => {
+        setShowDeleteConfirm(false);
+        setTripToDelete(null);
     };
 
     const getPlanTypeColor = (planType) => {
@@ -159,9 +191,19 @@ const Dashboard = () => {
                                                 From {trip.startCity}
                                             </p>
                                         </div>
-                                        <span className={`px-3 py-1 rounded-lg text-xs font-medium border ${getPlanTypeColor(trip.planType)}`}>
-                                            {trip.planType}
-                                        </span>
+                                        <div className="flex items-center space-x-2">
+                                            <span className={`px-3 py-1 rounded-lg text-xs font-medium border ${getPlanTypeColor(trip.planType)}`}>
+                                                {trip.planType}
+                                            </span>
+                                            <button
+                                                onClick={(e) => handleDeleteClick(e, trip)}
+                                                disabled={deletingId === trip.tripId}
+                                                className="p-2 rounded-lg hover:bg-red-500/10 text-red-400 hover:text-red-300 transition-colors disabled:opacity-50"
+                                                title="Delete trip"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
                                     </div>
 
                                     <div className="space-y-2 mb-4">
@@ -191,6 +233,33 @@ const Dashboard = () => {
                     )}
                 </div>
             </div>
+
+            {/* Delete Confirmation Dialog */}
+            {showDeleteConfirm && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                    <div className="bg-dark-900 rounded-xl p-6 max-w-md w-full mx-4 border border-dark-700">
+                        <h3 className="text-xl font-bold text-dark-100 mb-2">Delete Trip?</h3>
+                        <p className="text-dark-400 mb-6">
+                            Are you sure you want to delete the trip to <span className="text-primary-400 font-semibold">{tripToDelete?.destinationName}</span>? This action cannot be undone.
+                        </p>
+                        <div className="flex space-x-3">
+                            <button
+                                onClick={cancelDelete}
+                                className="flex-1 px-4 py-2 bg-dark-800 hover:bg-dark-700 text-dark-200 rounded-lg transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={confirmDelete}
+                                disabled={deletingId !== null}
+                                className="flex-1 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors disabled:opacity-50"
+                            >
+                                {deletingId ? 'Deleting...' : 'Delete'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

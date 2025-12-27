@@ -10,4 +10,6 @@ import java.util.Optional;
 public interface BudgetAllocationRepository extends JpaRepository<BudgetAllocation, Long> {
 
     Optional<BudgetAllocation> findByTripId(Long tripId);
+
+    void deleteByTripId(Long tripId);
 }

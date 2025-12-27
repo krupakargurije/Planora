@@ -32,6 +32,13 @@ export const tripAPI = {
     createTrip: (data) => api.post('/trips/plan', data),
     getTrip: (id) => api.get(`/trips/${id}`),
     getMyTrips: () => api.get('/trips/my-trips'),
+    deleteTrip: (id) => api.delete(`/trips/${id}`),
+};
+
+// Destination APIs
+export const destinationAPI = {
+    getAll: () => api.get('/destinations'),
+    search: (query) => api.get(`/destinations/search?query=${query}`),
 };
 
 export default api;

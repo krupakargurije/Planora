@@ -12,4 +12,6 @@ public interface HotelRepository extends JpaRepository<Hotel, Long> {
     List<Hotel> findByTripId(Long tripId);
 
     List<Hotel> findByPricePerNightLessThanEqual(Double maxPrice);
+
+    void deleteByTripId(Long tripId);
 }

@@ -52,6 +52,17 @@ public class TripController {
         return ResponseEntity.ok(ApiResponse.success(trips, "Trips retrieved successfully"));
     }
 
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<Void>> deleteTrip(
+            @PathVariable Long id,
+            Authentication authentication) {
+
+        Long userId = getUserIdFromAuthentication(authentication);
+        tripPlanningService.deleteTrip(id, userId);
+
+        return ResponseEntity.ok(ApiResponse.success(null, "Trip deleted successfully"));
+    }
+
     private Long getUserIdFromAuthentication(Authentication authentication) {
         String email = authentication.getName();
         User user = userRepository.findByEmail(email)

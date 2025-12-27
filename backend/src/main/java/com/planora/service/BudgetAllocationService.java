@@ -92,4 +92,11 @@ public class BudgetAllocationService {
     public Map<String, Double> getAllocationPercentages(String planType) {
         return ALLOCATION_PERCENTAGES.get(planType);
     }
+
+    /**
+     * Delete budget allocation for a trip
+     */
+    public void deleteBudgetAllocationByTripId(Long tripId) {
+        budgetAllocationRepository.deleteByTripId(tripId);
+    }
 }
